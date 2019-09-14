@@ -12,7 +12,7 @@ namespace Fractals {
         private const string CLEAR_KERNEL_NAME = "Clear";
         private const string RESULT_TEXTURE_NAME = "ResultTexture";
         private const string ESCAPE_TIME_BUFFER_NAME = "EscapeTimeBuffer";
-        private const string MAX_ITERATIONS_NAME = "MaxIteraions";
+        private const string MAX_ITERATIONS_NAME = "MaxIterations";
         private const string LOWER_LEFT_NAME = "LowerLeft";
         private const string SCALE_NAME = "Scale";
 
@@ -20,7 +20,7 @@ namespace Fractals {
         private ComputeShader mandelbrotComputeShader = default;
 
         [SerializeField]
-        private int maxIterations = default;
+        private int maxIterations = 10;
 
         private int calculateEscapeTimeKernelId;
         private int colourEscapeTimeKernelId;
@@ -53,15 +53,11 @@ namespace Fractals {
                 enabled = false;
             }
 
-            InitializeShader();
-
-            // TODO: Should be called when view has changed
-            CalculateView();
-            UpdateShaderParameters();
+            GetShaderIds();
         }
 
         private void OnRenderImage(RenderTexture source, RenderTexture destination) {
-            
+            Render(destination);
         }
 
         private void OnDestroy() {
@@ -86,12 +82,9 @@ namespace Fractals {
             return resultTexture == null || resultTexture.width != Screen.width || resultTexture.height != Screen.height;
         }
 
-        private void InitializeShader() {
-            GetShaderIds();
-            UpdateResolution();
-        }
-
         private void GetShaderIds() {
+
+            // TODO: Check that the returned ids are valid
 
             calculateEscapeTimeKernelId = mandelbrotComputeShader.FindKernel(CALCULATE_ESCAPE_TIME_KERNEL_NAME);
             colourEscapeTimeKernelId = mandelbrotComputeShader.FindKernel(COLOUR_ESCAPE_TIME_KERNEL_NAME);
@@ -137,7 +130,9 @@ namespace Fractals {
 
             escapeTimeBuffer = new ComputeBuffer(Screen.width * Screen.height, sizeof(int));
 
+            mandelbrotComputeShader.SetTexture(calculateEscapeTimeKernelId, resultTextureId, resultTexture);
             mandelbrotComputeShader.SetTexture(colourEscapeTimeKernelId, resultTextureId, resultTexture);
+            mandelbrotComputeShader.SetTexture(clearKernelId, resultTextureId, resultTexture);
             mandelbrotComputeShader.SetBuffer(calculateEscapeTimeKernelId, escapeTimeBufferId, escapeTimeBuffer);
             mandelbrotComputeShader.SetBuffer(colourEscapeTimeKernelId, escapeTimeBufferId, escapeTimeBuffer);
             mandelbrotComputeShader.SetBuffer(clearKernelId, escapeTimeBufferId, escapeTimeBuffer);

@@ -159,8 +159,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 09df6e4a3b0288e4daf0e16717b6f3e2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mandelbrotComputeShader: {fileID: 0}
-  maxIterations: 10
+  mandelbrotComputeShader: {fileID: 7200000, guid: d449c5cf1bed84443861c894e9fd3b2f,
+    type: 3}
+  maxIterations: 100
 --- !u!20 &519420031
 Camera:
   m_ObjectHideFlags: 0

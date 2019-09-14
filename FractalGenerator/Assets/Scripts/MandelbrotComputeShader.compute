@@ -1,0 +1,36 @@
+﻿#pragma kernel Clear
+#pragma kernel CalculateEscapeTime
+#pragma kernel ColourByEscapeTime
+
+RWTexture2D<float4> ResultTexture;
+RWStructuredBuffer<int> EscapeTimeBuffer;
+int MaxIterations;
+float2 LowerLeft;   // TODO: Use complex number later
+float Scale;
+
+uint FlattenIndex(uint3 id) {
+    uint width;
+    uint height;
+    ResultTexture.GetDimensions(width, height);
+    return id.y * width + id.x;
+}
+
+[numthreads(8,8,1)]
+void Clear (uint3 id : SV_DispatchThreadID) {
+    uint index = FlattenIndex(id);
+    EscapeTimeBuffer[index] = 0;
+}
+
+[numthreads(8,8,1)]
+void CalculateEscapeTime (uint3 id : SV_DispatchThreadID) {
+    uint index = FlattenIndex(id);
+    EscapeTimeBuffer[index] = (id.x + id.y) % MaxIterations + 1;
+}
+
+[numthreads(8,8,1)]
+void ColourByEscapeTime (uint3 id : SV_DispatchThreadID) {
+    uint index = FlattenIndex(id);
+    int escapeTime = EscapeTimeBuffer[index];
+    float fraction = ((float)escapeTime + 1.0f) / (float)MaxIterations;
+    ResultTexture[id.xy] = escapeTime < MaxIterations ? float4(fraction, fraction, fraction, 1) : float4(0, 0, 0.5f, 0);
+}
