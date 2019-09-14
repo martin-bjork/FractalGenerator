@@ -2,6 +2,8 @@
 #pragma kernel CalculateEscapeTime
 #pragma kernel ColourByEscapeTime
 
+#include "ComplexNumbers.cginc"
+
 RWTexture2D<float4> ResultTexture;
 RWStructuredBuffer<int> EscapeTimeBuffer;
 int MaxIterations;
@@ -15,6 +17,13 @@ uint FlattenIndex(uint3 id) {
     return id.y * width + id.x;
 }
 
+bool IsOnScreen(uint3 id) {
+    uint width;
+    uint height;
+    ResultTexture.GetDimensions(width, height);
+    return id.x < width && id.y < height;
+}
+
 [numthreads(8,8,1)]
 void Clear (uint3 id : SV_DispatchThreadID) {
     uint index = FlattenIndex(id);
@@ -23,8 +32,12 @@ void Clear (uint3 id : SV_DispatchThreadID) {
 
 [numthreads(8,8,1)]
 void CalculateEscapeTime (uint3 id : SV_DispatchThreadID) {
+   if (!IsOnScreen(id)) {
+       return;
+   }
     uint index = FlattenIndex(id);
-    EscapeTimeBuffer[index] = (id.x + id.y) % MaxIterations + 1;
+    Complex z = CreateComplex(id.x, id.y);
+    EscapeTimeBuffer[index] = Magnitude(z) % MaxIterations;
 }
 
 [numthreads(8,8,1)]
