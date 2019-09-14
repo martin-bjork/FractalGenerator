@@ -21,6 +21,8 @@ float Magnitude(Complex z) {
     return sqrt(SquareMagnitude(z));
 }
 
+// TODO: Create "in-place"-versions
+
 Complex Add(Complex a, Complex b) {
     return CreateComplex(a.real + b.real, a.imaginary + b.imaginary);
 }

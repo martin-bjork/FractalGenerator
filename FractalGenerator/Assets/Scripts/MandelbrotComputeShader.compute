@@ -7,7 +7,7 @@
 RWTexture2D<float4> ResultTexture;
 RWStructuredBuffer<int> EscapeTimeBuffer;
 int MaxIterations;
-float2 LowerLeft;   // TODO: Use complex number later
+float2 LowerLeft;
 float Scale;
 
 uint FlattenIndex(uint3 id) {
@@ -24,6 +24,12 @@ bool IsOnScreen(uint3 id) {
     return id.x < width && id.y < height;
 }
 
+Complex GetComplexForPixel(uint3 id) {
+    float2 scaled = float2(id.x, id.y) * Scale;
+    float2 translated = scaled + LowerLeft;
+    return CreateComplex(translated.x, translated.y);
+}
+
 [numthreads(8,8,1)]
 void Clear (uint3 id : SV_DispatchThreadID) {
     uint index = FlattenIndex(id);
@@ -36,8 +42,21 @@ void CalculateEscapeTime (uint3 id : SV_DispatchThreadID) {
        return;
    }
     uint index = FlattenIndex(id);
-    Complex z = CreateComplex(id.x, id.y);
-    EscapeTimeBuffer[index] = Magnitude(z) % MaxIterations;
+
+    Complex z = CreateComplex(0, 0);
+    Complex c = GetComplexForPixel(id);
+    int iterations = 0;
+
+    for (int i = 0; i < MaxIterations; i++) {
+        z = Multiply(z, z);
+        z = Add(z, c);
+        if (SquareMagnitude(z) > 4) {
+            break;
+        }
+        iterations++;
+    }
+
+    EscapeTimeBuffer[index] = iterations;
 }
 
 [numthreads(8,8,1)]
@@ -45,5 +64,5 @@ void ColourByEscapeTime (uint3 id : SV_DispatchThreadID) {
     uint index = FlattenIndex(id);
     int escapeTime = EscapeTimeBuffer[index];
     float fraction = ((float)escapeTime + 1.0f) / (float)MaxIterations;
-    ResultTexture[id.xy] = escapeTime < MaxIterations ? float4(fraction, fraction, fraction, 1) : float4(0, 0, 0.5f, 0);
+    ResultTexture[id.xy] = escapeTime < MaxIterations ? float4(fraction, fraction, fraction, 1) : float4(0, 0, 0, 0);
 }
