@@ -25,7 +25,7 @@ namespace Fractals {
         private int maxIterations = 10;
 
         [SerializeField]
-        private float scrollSensitivity = 1;
+        private float scrollSensitivity = 0.1f;
 
         private int calculateEscapeTimeKernelId;
         private int colourEscapeTimeKernelId;
