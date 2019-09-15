@@ -24,6 +24,9 @@ namespace Fractals {
         [SerializeField]
         private int maxIterations = 10;
 
+        [SerializeField]
+        private float scrollSensitivity = 1;
+
         private int calculateEscapeTimeKernelId;
         private int colourEscapeTimeKernelId;
         private int clearKernelId;
@@ -78,9 +81,17 @@ namespace Fractals {
         private void UpdateView() {
 
             Vector2 mousePan = GetMousePan();
+            float scrollDelta = Input.mouseScrollDelta.y * scrollSensitivity;
 
-            if (mousePan == Vector2.zero) {
+            if (mousePan == Vector2.zero && scrollDelta == 0) {
                 return;
+            }
+
+            // TODO: Implement "zoom to pointer"
+            if (scrollDelta < 0) {
+                scale *= (1 - scrollDelta);
+            } else {
+                scale /= (1 + scrollDelta);
             }
 
             lowerLeft -= mousePan * scale;
