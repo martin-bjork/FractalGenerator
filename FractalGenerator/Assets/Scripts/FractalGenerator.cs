@@ -16,6 +16,8 @@ namespace Fractals {
         private const string LOWER_LEFT_NAME = "LowerLeft";
         private const string SCALE_NAME = "Scale";
 
+        private const int LEFT_MOUSE_BUTTON_ID = 0;
+
         [SerializeField]
         private ComputeShader mandelbrotComputeShader = default;
 
@@ -41,6 +43,10 @@ namespace Fractals {
         private float scale;
         private Vector2 lowerLeft;
 
+        private bool needsReRender = true;
+
+        private Vector3 lastMousePosition;
+
         private void Awake() {
 
             if (mandelbrotComputeShader == null) {
@@ -54,25 +60,61 @@ namespace Fractals {
             }
 
             GetShaderIds();
+            CalculateInitialView();
         }
 
         private void OnRenderImage(RenderTexture source, RenderTexture destination) {
             Render(destination);
         }
 
+        private void Update() {
+            UpdateView();
+        }
+
         private void OnDestroy() {
             ReleaseStuff();
+        }
+
+        private void UpdateView() {
+
+            Vector2 mousePan = GetMousePan();
+
+            if (mousePan == Vector2.zero) {
+                return;
+            }
+
+            lowerLeft -= mousePan * scale;
+            needsReRender = true;
+        }
+
+        private Vector2 GetMousePan() {
+            if (Input.GetMouseButton(LEFT_MOUSE_BUTTON_ID)) {
+                if (Input.GetMouseButtonDown(LEFT_MOUSE_BUTTON_ID)) {
+                    lastMousePosition = Input.mousePosition;
+                    return Vector2.zero;
+                } else {
+                    Vector3 mouseDelta = Input.mousePosition - lastMousePosition;
+                    lastMousePosition = Input.mousePosition;
+                    return new Vector2(mouseDelta.x, mouseDelta.y);
+                }
+            } else {
+                return Vector2.zero;
+            }
         }
 
         private void Render(RenderTexture destination) {
 
             if (ResolutionHasChanged()) {
                 UpdateResolution();
-                CalculateView();
+                needsReRender = true;
+            }
+
+            if (needsReRender) {
                 UpdateShaderParameters();
                 mandelbrotComputeShader.Dispatch(clearKernelId, threadGroupsX, threadGroupsY, 1);
                 mandelbrotComputeShader.Dispatch(calculateEscapeTimeKernelId, threadGroupsX, threadGroupsY, 1);
                 mandelbrotComputeShader.Dispatch(colourEscapeTimeKernelId, threadGroupsX, threadGroupsY, 1);
+                needsReRender = false;
             }
 
             Graphics.Blit(resultTexture, destination);
@@ -98,8 +140,7 @@ namespace Fractals {
 
         }
 
-        // TODO: Should be able to update later instead of hard-coding it
-        private void CalculateView() {
+        private void CalculateInitialView() {
 
             // The region of interest is (x in [-2.5, 0.5], y in [-1.5, 1.5])
             // Calculate the scale and lower left so that all of it is visible
