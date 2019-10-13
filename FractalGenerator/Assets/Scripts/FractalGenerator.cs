@@ -87,8 +87,10 @@ namespace Fractals {
                 return;
             }
 
+            Vector2 mousePosition = new Vector2(Input.mousePosition.x, Input.mousePosition.y);
+
             lowerLeft -= mousePan * scale;
-            lowerLeft += scrollDelta * scale * 0.5f * (new Vector2(Screen.width, Screen.height));
+            lowerLeft += scrollDelta * scale * mousePosition;   // Scroll with mouse position as center
 
             if (scrollDelta < 0) {
                 scale *= (1 - scrollDelta);
