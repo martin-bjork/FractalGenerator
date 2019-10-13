@@ -87,14 +87,15 @@ namespace Fractals {
                 return;
             }
 
-            // TODO: Implement "zoom to pointer"
+            lowerLeft -= mousePan * scale;
+            lowerLeft += scrollDelta * scale * 0.5f * (new Vector2(Screen.width, Screen.height));
+
             if (scrollDelta < 0) {
                 scale *= (1 - scrollDelta);
             } else {
                 scale /= (1 + scrollDelta);
             }
 
-            lowerLeft -= mousePan * scale;
             needsReRender = true;
         }
 
