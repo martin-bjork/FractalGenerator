@@ -161,8 +161,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   mandelbrotComputeShader: {fileID: 7200000, guid: d449c5cf1bed84443861c894e9fd3b2f,
     type: 3}
-  maxIterations: 100
+  maxIterations: 1000
   scrollSensitivity: 0.1
+  colors:
+  - {r: 0.03529412, g: 0.09019608, b: 0.2509804, a: 1}
+  - {r: 0.53333336, g: 0.37254903, b: 0.098039225, a: 1}
+  - {r: 0.8117648, g: 0.8117648, b: 0.8117648, a: 1}
+  colorLevels: 100
 --- !u!20 &519420031
 Camera:
   m_ObjectHideFlags: 0

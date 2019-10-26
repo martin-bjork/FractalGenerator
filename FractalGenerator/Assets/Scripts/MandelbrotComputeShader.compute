@@ -1,14 +1,17 @@
 ﻿#pragma kernel Clear
 #pragma kernel CalculateEscapeTime
+#pragma kernel ColourByGrayscale
 #pragma kernel ColourByEscapeTime
 
 #include "ComplexNumbers.cginc"
 
 RWTexture2D<float4> ResultTexture;
-RWStructuredBuffer<int> EscapeTimeBuffer;
-int MaxIterations;
+RWStructuredBuffer<uint> EscapeTimeBuffer;
+uint MaxIterations;
 float2 LowerLeft;
 float Scale;
+uint ColorLevels;
+RWStructuredBuffer<float4> Colors;
 
 uint FlattenIndex(uint3 id) {
     uint width;
@@ -37,17 +40,17 @@ void Clear (uint3 id : SV_DispatchThreadID) {
 }
 
 [numthreads(8,8,1)]
-void CalculateEscapeTime (uint3 id : SV_DispatchThreadID) {
-   if (!IsOnScreen(id)) {
+void CalculateEscapeTime(uint3 id : SV_DispatchThreadID) {
+    if (!IsOnScreen(id)) {
        return;
-   }
+    }
     uint index = FlattenIndex(id);
 
     Complex z = CreateComplex(0, 0);
     Complex c = GetComplexForPixel(id);
-    int iterations = 0;
+    uint iterations = 0;
 
-    for (int i = 0; i < MaxIterations; i++) {
+    for (uint i = 0; i < MaxIterations; i++) {
         z = Multiply(z, z);
         z = Add(z, c);
         if (SquareMagnitude(z) > 4) {
@@ -60,9 +63,36 @@ void CalculateEscapeTime (uint3 id : SV_DispatchThreadID) {
 }
 
 [numthreads(8,8,1)]
-void ColourByEscapeTime (uint3 id : SV_DispatchThreadID) {
+void ColourByGrayscale(uint3 id : SV_DispatchThreadID) {
     uint index = FlattenIndex(id);
-    int escapeTime = EscapeTimeBuffer[index];
+    uint escapeTime = EscapeTimeBuffer[index];
     float fraction = ((float)escapeTime + 1.0f) / (float)MaxIterations;
-    ResultTexture[id.xy] = escapeTime < MaxIterations ? float4(fraction, fraction, fraction, 1) : float4(0, 0, 0, 0);
+    ResultTexture[id.xy] = escapeTime < MaxIterations 
+                         ? float4(fraction, fraction, fraction, 1) 
+                         : float4(0, 0, 0, 0);
+}
+
+[numthreads(8,8,1)]
+void ColourByEscapeTime(uint3 id : SV_DispatchThreadID) {
+
+    uint index = FlattenIndex(id);
+    uint escapeTime = EscapeTimeBuffer[index];
+    uint escapeTimeIndex = escapeTime % ColorLevels;
+
+    uint colorsCount;
+    uint stride;
+    Colors.GetDimensions(colorsCount, stride);
+    float colorSpacing = (float)colorsCount / (float)ColorLevels;
+
+    // TODO: Rename
+    float lerpThingy = escapeTimeIndex * colorSpacing;
+    uint colorIndex = floor(lerpThingy);
+    float l = frac(lerpThingy);
+
+    float4 a = Colors[colorIndex];
+    float4 b = Colors[(colorIndex + 1) % colorsCount];
+
+    ResultTexture[id.xy] = escapeTime < MaxIterations
+                         ? lerp(a, b, l)
+                         : float4(0, 0, 0, 0);
 }

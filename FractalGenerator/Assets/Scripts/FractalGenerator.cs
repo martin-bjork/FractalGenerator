@@ -9,12 +9,15 @@ namespace Fractals {
 
         private const string CALCULATE_ESCAPE_TIME_KERNEL_NAME = "CalculateEscapeTime";
         private const string COLOUR_ESCAPE_TIME_KERNEL_NAME = "ColourByEscapeTime";
+        private const string COLOUR_GRAYSCALE_KERNEL_NAME = "ColourByGrayscale";
         private const string CLEAR_KERNEL_NAME = "Clear";
         private const string RESULT_TEXTURE_NAME = "ResultTexture";
         private const string ESCAPE_TIME_BUFFER_NAME = "EscapeTimeBuffer";
         private const string MAX_ITERATIONS_NAME = "MaxIterations";
         private const string LOWER_LEFT_NAME = "LowerLeft";
         private const string SCALE_NAME = "Scale";
+        private const string COLORS_NAME = "Colors";
+        private const string COLOR_LEVELS_NAME = "ColorLevels";
 
         private const int LEFT_MOUSE_BUTTON_ID = 0;
 
@@ -27,8 +30,15 @@ namespace Fractals {
         [SerializeField]
         private float scrollSensitivity = 0.1f;
 
+        [SerializeField]
+        private Color[] colors = default;
+
+        [SerializeField]
+        private int colorLevels = 100;
+
         private int calculateEscapeTimeKernelId;
         private int colourEscapeTimeKernelId;
+        private int colourGrayscaleKernelId;
         private int clearKernelId;
 
         private int resultTextureId;
@@ -36,12 +46,15 @@ namespace Fractals {
         private int maxIterationsId;
         private int lowerLeftId;
         private int scaleId;
+        private int colorsBufferId;
+        private int colorLevelsId;
 
         private int threadGroupsX;
         private int threadGroupsY;
 
         private RenderTexture resultTexture;
         private ComputeBuffer escapeTimeBuffer;
+        private ComputeBuffer colorsBuffer;
 
         private float scale;
         private Vector2 lowerLeft;
@@ -122,6 +135,7 @@ namespace Fractals {
                 UpdateShaderParameters();
                 mandelbrotComputeShader.Dispatch(clearKernelId, threadGroupsX, threadGroupsY, 1);
                 mandelbrotComputeShader.Dispatch(calculateEscapeTimeKernelId, threadGroupsX, threadGroupsY, 1);
+                //mandelbrotComputeShader.Dispatch(colourGrayscaleKernelId, threadGroupsX, threadGroupsY, 1);
                 mandelbrotComputeShader.Dispatch(colourEscapeTimeKernelId, threadGroupsX, threadGroupsY, 1);
                 needsReRender = false;
             }
@@ -139,6 +153,7 @@ namespace Fractals {
 
             calculateEscapeTimeKernelId = mandelbrotComputeShader.FindKernel(CALCULATE_ESCAPE_TIME_KERNEL_NAME);
             colourEscapeTimeKernelId = mandelbrotComputeShader.FindKernel(COLOUR_ESCAPE_TIME_KERNEL_NAME);
+            colourGrayscaleKernelId = mandelbrotComputeShader.FindKernel(COLOUR_GRAYSCALE_KERNEL_NAME);
             clearKernelId = mandelbrotComputeShader.FindKernel(CLEAR_KERNEL_NAME);
 
             resultTextureId = Shader.PropertyToID(RESULT_TEXTURE_NAME);
@@ -146,7 +161,8 @@ namespace Fractals {
             maxIterationsId = Shader.PropertyToID(MAX_ITERATIONS_NAME);
             lowerLeftId = Shader.PropertyToID(LOWER_LEFT_NAME);
             scaleId = Shader.PropertyToID(SCALE_NAME);
-
+            colorsBufferId = Shader.PropertyToID(COLORS_NAME);
+            colorLevelsId = Shader.PropertyToID(COLOR_LEVELS_NAME);
         }
 
         private void CalculateInitialView() {
@@ -163,6 +179,14 @@ namespace Fractals {
             mandelbrotComputeShader.SetFloat(scaleId, scale);
             mandelbrotComputeShader.SetVector(lowerLeftId, lowerLeft);
             mandelbrotComputeShader.SetInt(maxIterationsId, maxIterations);
+            mandelbrotComputeShader.SetInt(colorLevelsId, colorLevels);
+
+            if (colors.Length != colorsBuffer?.count) {
+                colorsBuffer?.Release();
+                colorsBuffer = new ComputeBuffer(colors.Length, 4 * sizeof(float));
+            }
+            colorsBuffer.SetData(colors);
+            mandelbrotComputeShader.SetBuffer(colourEscapeTimeKernelId, colorsBufferId, colorsBuffer);
         }
 
         private void UpdateResolution() {
@@ -182,15 +206,18 @@ namespace Fractals {
 
             mandelbrotComputeShader.SetTexture(calculateEscapeTimeKernelId, resultTextureId, resultTexture);
             mandelbrotComputeShader.SetTexture(colourEscapeTimeKernelId, resultTextureId, resultTexture);
+            mandelbrotComputeShader.SetTexture(colourGrayscaleKernelId, resultTextureId, resultTexture);
             mandelbrotComputeShader.SetTexture(clearKernelId, resultTextureId, resultTexture);
             mandelbrotComputeShader.SetBuffer(calculateEscapeTimeKernelId, escapeTimeBufferId, escapeTimeBuffer);
             mandelbrotComputeShader.SetBuffer(colourEscapeTimeKernelId, escapeTimeBufferId, escapeTimeBuffer);
+            mandelbrotComputeShader.SetBuffer(colourGrayscaleKernelId, escapeTimeBufferId, escapeTimeBuffer);
             mandelbrotComputeShader.SetBuffer(clearKernelId, escapeTimeBufferId, escapeTimeBuffer);
         }
 
         private void ReleaseStuff() {
             resultTexture?.Release();
             escapeTimeBuffer?.Release();
+            colorsBuffer?.Release();
         }
 
     }
